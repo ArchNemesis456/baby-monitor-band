@@ -1,0 +1,7 @@
+*.o
+*.exe
+*.bin
+*.hex
+.vscode/
+.idea/
+__pycache__/
