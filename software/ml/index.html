@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Baby Band Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI';
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        canvas {
+            background: white;
+            border-radius: 10px;
+        }
+
+        .state-box {
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>👶 Baby Band Analytics Dashboard</h1>
+
+<div class="card">
+    <div class="state-box">
+        Current State: <span id="currentState">Loading...</span>
+    </div>
+</div>
+
+<div class="grid">
+
+    <div class="card">
+        <h3>Cry Volume Trend</h3>
+        <canvas id="volumeChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Heart Rate Trend</h3>
+        <canvas id="hrChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>State Distribution</h3>
+        <canvas id="stateChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h3>Daily Avg Heart Rate</h3>
+        <canvas id="dailyHrChart"></canvas>
+    </div>
+
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+async function loadStats() {
+
+    const stats = await fetch(API + "/stats").then(res => res.json());
+    if (stats.length === 0) return;
+
+    document.getElementById("currentState").innerText =
+        stats[0].state + " (" + (stats[0].confidence * 100).toFixed(1) + "%)";
+
+    const labels = stats.map(d => d.timestamp).reverse();
+    const volumes = stats.map(d => d.cry_volume).reverse();
+    const hr = stats.map(d => d.heart_rate).reverse();
+
+    new Chart(document.getElementById("volumeChart"), {
+        type: 'line',
+        data: { labels, datasets: [{ label: "Cry Volume", data: volumes }] }
+    });
+
+    new Chart(document.getElementById("hrChart"), {
+        type: 'line',
+        data: { labels, datasets: [{ label: "Heart Rate", data: hr }] }
+    });
+
+    const stateData = await fetch(API + "/stats/state-distribution").then(res => res.json());
+
+    new Chart(document.getElementById("stateChart"), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(stateData),
+            datasets: [{ data: Object.values(stateData) }]
+        }
+    });
+
+    const dailyHr = await fetch(API + "/stats/daily-avg-hr").then(res => res.json());
+
+    new Chart(document.getElementById("dailyHrChart"), {
+        type: 'bar',
+        data: {
+            labels: dailyHr.map(d => d.day),
+            datasets: [{ label: "Avg HR", data: dailyHr.map(d => d.avg_hr) }]
+        }
+    });
+}
+
+loadStats();
+setInterval(loadStats, 5000);
+</script>
+
+</body>
+</html>
