@@ -3,14 +3,16 @@ import pandas as pd
 import numpy as np
 
 # =====================================================
-# LOAD MODEL
+# LOAD TRAINED MODEL
 # =====================================================
+
 MODEL_PATH = "model/rf_baby_state_model.pkl"
 model = joblib.load(MODEL_PATH)
 
 # =====================================================
 # LABEL MAP
 # =====================================================
+
 LABEL_MAP = {
     0: "Hungry",
     1: "Sleepy",
@@ -19,8 +21,22 @@ LABEL_MAP = {
 }
 
 # =====================================================
+# ALERT LEVEL MAP
+# =====================================================
+
+ALERT_LEVELS = {
+    "Idle": "Low",
+    "Sleepy": "Low",
+    "Hungry": "Medium",
+    "Discomfort": "Medium",
+    "Uncertain": "Medium",
+    "Stress": "High"
+}
+
+# =====================================================
 # MACHINE LEARNING PREDICTION
 # =====================================================
+
 def ml_predict(sensor):
 
     features = pd.DataFrame([{
@@ -35,76 +51,108 @@ def ml_predict(sensor):
 
     probabilities = model.predict_proba(features)[0]
 
-    idx = int(np.argmax(probabilities))
+    predicted_index = int(np.argmax(probabilities))
 
     return {
-        "state": LABEL_MAP[idx],
-        "confidence": float(probabilities[idx])
+        "state": LABEL_MAP[predicted_index],
+        "confidence": float(probabilities[predicted_index])
     }
 
 
 # =====================================================
-# RULE ENGINE
+# HYBRID RULE ENGINE
 # =====================================================
+
 def apply_rules(sensor, ml_result):
 
     state = ml_result["state"]
     confidence = ml_result["confidence"]
 
-    hr = sensor["heart_rate"]
-    motion = sensor["motion_intensity"]
     cry = sensor["cry_volume"]
-    rest = sensor["restlessness"]
+    motion = sensor["motion_intensity"]
+    restlessness = sensor["restlessness"]
+    heart_rate = sensor["heart_rate"]
 
-    # -----------------------------
-    # Rule 1 : No Cry
-    # -----------------------------
+    # -------------------------------------------------
+    # RULE 1 : NO CRY DETECTED
+    # -------------------------------------------------
+
     if cry < 0.05:
+
         return {
             "state": "Idle",
-            "confidence": 1.0
+            "confidence": 1.00,
+            "alert_level": ALERT_LEVELS["Idle"]
         }
 
-    # -----------------------------
-    # Rule 2 : Stress Override
-    # -----------------------------
-    if hr > 150 and motion > 0.70:
+    # -------------------------------------------------
+    # RULE 2 : STRESS OVERRIDE
+    # -------------------------------------------------
+
+    if heart_rate > 150 and motion > 0.70:
+
         return {
             "state": "Stress",
-            "confidence": 0.95
+            "confidence": 0.95,
+            "alert_level": ALERT_LEVELS["Stress"]
         }
 
-    # -----------------------------
-    # Rule 3 : Sleep Confirmation
-    # -----------------------------
-    if hr < 110 and motion < 0.25 and rest < 0.25:
+    # -------------------------------------------------
+    # RULE 3 : SLEEP CONFIRMATION
+    # -------------------------------------------------
+
+    if (
+        heart_rate < 110
+        and motion < 0.25
+        and restlessness < 0.25
+    ):
+
         return {
             "state": "Sleepy",
-            "confidence": 0.90
+            "confidence": 0.90,
+            "alert_level": ALERT_LEVELS["Sleepy"]
         }
 
-    # -----------------------------
-    # Rule 4 : Low Confidence
-    # -----------------------------
+    # -------------------------------------------------
+    # RULE 4 : LOW CONFIDENCE
+    # -------------------------------------------------
+
     if confidence < 0.55:
+
         return {
             "state": "Uncertain",
-            "confidence": round(confidence, 2)
+            "confidence": round(confidence, 2),
+            "alert_level": ALERT_LEVELS["Uncertain"]
         }
 
+    # -------------------------------------------------
+    # DEFAULT : TRUST THE ML MODEL
+    # -------------------------------------------------
+
     return {
+
         "state": state,
-        "confidence": round(confidence, 2)
+
+        "confidence": round(confidence, 2),
+
+        "alert_level": ALERT_LEVELS.get(
+            state,
+            "Medium"
+        )
     }
 
 
 # =====================================================
-# FINAL DECISION
+# FINAL DECISION PIPELINE
 # =====================================================
+
 def final_decision(sensor):
 
     ml_result = ml_predict(sensor)
 
-    final_result = apply_rules(sensor, ml_result)
+    final_result = apply_rules(
+        sensor,
+        ml_result
+    )
 
     return final_result

@@ -1,16 +1,21 @@
 from datetime import datetime
 import requests
-
+from validator import validate_sensor_data
 from inference import final_decision
 from database import save_prediction
 from config import PARENT_URL
+from history import (
+    add_sensor_reading,
+    get_sensor_data,
+    history_ready
+)
 
 
 # =====================================================
 # SEND TO PARENT BAND
 # =====================================================
 
-def send_to_parent_band(result, bpm):
+def send_to_parent_band(result):
 
     payload = {
 
@@ -20,8 +25,8 @@ def send_to_parent_band(result, bpm):
 
         "confidence": round(result["confidence"], 2),
 
-        "bpm": bpm
-
+        "alert_level": result["alert_level"],
+        
     }
 
     try:
@@ -49,21 +54,51 @@ def send_to_parent_band(result, bpm):
 
 def process_sensor_data(sensor_data):
 
-    print("\n📡 DATA:", sensor_data)
+    print("\n📡 RAW DATA:", sensor_data)
 
-    result = final_decision(sensor_data)
+    # ============================================
+    # VALIDATE SENSOR DATA
+    # ============================================
+
+    sensor_data = validate_sensor_data(sensor_data)
+
+    # ============================================
+    # STORE SENSOR READING
+    # ============================================
+
+    add_sensor_reading(sensor_data)
+    if history_ready():
+        print("🟢 History Buffer: FULL (Using Smoothed Data)")
+    else:
+        print("🟡 History Buffer: Filling...")
+
+    # ============================================
+    # USE SMOOTHED SENSOR DATA
+    # ============================================
+
+    smoothed_sensor = get_sensor_data()
+
+    print("📊 SMOOTHED DATA:", smoothed_sensor)
+
+    # ============================================
+    # HYBRID AI
+    # ============================================
+
+    result = final_decision(smoothed_sensor)
 
     print("🧠 RESULT:", result)
 
-    save_prediction(sensor_data, result)
+    # ============================================
+    # SAVE TO DATABASE
+    # ============================================
 
-    send_to_parent_band(
+    save_prediction(smoothed_sensor, result)
 
-        result,
+    # ============================================
+    # SEND TO PARENT BAND
+    # ============================================
 
-        sensor_data["heart_rate"]
-
-    )
+    send_to_parent_band(result)
 
     return {
 
@@ -71,6 +106,6 @@ def process_sensor_data(sensor_data):
 
         "confidence": result["confidence"],
 
-        "bpm": sensor_data["heart_rate"]
+        "alert_level": result["alert_level"]
 
     }
