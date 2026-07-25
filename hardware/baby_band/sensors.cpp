@@ -1,11 +1,10 @@
 #include "sensors.h"
+#include "config.h"
 
 #include <Wire.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
 
-#define MIC_PIN 34
-#define PULSE_PIN 35
 
 const int samples = 150;
 const float reference = 1000.0;
@@ -15,16 +14,20 @@ bool mpu_ok = false;
 
 void initSensors()
 {
-    Wire.begin();
+    Wire.begin(SDA_PIN, SCL_PIN);
 
-    if(mpu.begin())
+    if (mpu.begin())
     {
         mpu_ok = true;
-        mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+        Serial.println("MPU6050 Connected");
+    }
+    else
+    {
+        Serial.println("ERROR: MPU6050 NOT FOUND");
     }
 
     pinMode(MIC_PIN, INPUT);
-    pinMode(PULSE_PIN, INPUT);
+    pinMode(HEART_PIN, INPUT);
 }
 
 RawSensorData readSensors()
@@ -53,10 +56,10 @@ RawSensorData readSensors()
     data.soundDB = dB;
 
     // --------------------------
-    // Pulse Sensor
+    // pulse Sensor
     // --------------------------
 
-    data.pulseADC = analogRead(PULSE_PIN);
+    data.pulseADC = analogRead(HEART_PIN);
 
     if(data.pulseADC > 3000)
         data.bpm = 0;

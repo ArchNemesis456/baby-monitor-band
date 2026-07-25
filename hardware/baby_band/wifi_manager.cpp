@@ -5,6 +5,7 @@
 
 void connectWiFi()
 {
+    Serial.println("WiFi Connected");
     if (WiFi.status() == WL_CONNECTED)
     {
         return;
