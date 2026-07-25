@@ -46,8 +46,14 @@ PredictionResponse sendPrediction(const SensorData& data)
 
     if (httpCode <= 0)
     {
-        Serial.print("HTTP Error : ");
+        Serial.print("HTTP Error Code: ");
         Serial.println(httpCode);
+
+        Serial.print("WiFi Status: ");
+        Serial.println(WiFi.status());
+
+        Serial.print("ESP32 IP: ");
+        Serial.println(WiFi.localIP());
 
         http.end();
         return prediction;

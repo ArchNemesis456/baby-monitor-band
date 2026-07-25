@@ -15,7 +15,7 @@ void setup()
 
     initSensors();
 
-    connectToWiFi();
+    connectWiFi();
 }
 
 void loop()

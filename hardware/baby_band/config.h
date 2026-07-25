@@ -10,7 +10,7 @@ constexpr const char* WIFI_PASSWORD = "swayam@123";
 /* ==============================
  * Backend Configuration
  * ============================== */
-constexpr const char* SERVER_URL = "http://172.20.121.153:8000/predict";
+constexpr const char* SERVER_URL = "http://10.92.132.75:8000/predict";
 
 /* ==============================
  * Sensor Pins

@@ -17,6 +17,16 @@ from database import (
 initialize_database()
 
 # =====================================================
+# LATEST PREDICTION CACHE
+# =====================================================
+
+latest_prediction = {
+    "state": "Waiting",
+    "confidence": 0.0,
+    "alert_level": "Low"
+}
+
+# =====================================================
 # FASTAPI
 # =====================================================
 
@@ -54,12 +64,24 @@ def root():
 @app.post("/predict")
 def predict(data: BabySensorData):
 
-    return process_sensor_data(
+    global latest_prediction
 
+    result = process_sensor_data(
         data.model_dump()
-
     )
 
+    latest_prediction = result
+
+    return result
+
+# =====================================================
+# LATEST PREDICTION
+# =====================================================
+
+@app.get("/latest")
+def latest():
+
+    return latest_prediction
 
 # =====================================================
 # RECENT RECORDS
