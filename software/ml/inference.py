@@ -77,7 +77,11 @@ def apply_rules(sensor, ml_result):
     # RULE 1 : NO CRY DETECTED
     # -------------------------------------------------
 
-    if cry < 0.05:
+    if (
+        cry < 0.05
+        and motion < 0.10
+        and heart_rate == 0
+    ):
 
         return {
             "state": "Idle",

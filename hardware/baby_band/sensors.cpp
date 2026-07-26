@@ -32,47 +32,71 @@ void initSensors()
 
 RawSensorData readSensors()
 {
-    RawSensorData data;
+    RawSensorData data{};
 
     // --------------------------
     // Microphone
     // --------------------------
 
     long sum = 0;
+    long long squareSum = 0;
+
+    int prevSample = analogRead(MIC_PIN);
+    int zeroCrossings = 0;
 
     for(int i=0;i<samples;i++)
     {
-        sum += analogRead(MIC_PIN);
+        int currentSample = analogRead(MIC_PIN);
+
+        sum += currentSample;
+
+        int centered = currentSample - 2048;
+
+        squareSum += (long long)centered * centered;
+
+        if((prevSample < 2048 && currentSample >= 2048) ||
+        (prevSample >= 2048 && currentSample < 2048))
+        {
+            zeroCrossings++;
+        }
+
+        prevSample = currentSample;
     }
 
-    float avg = sum/(float)samples;
+    float rms = sqrt(squareSum / (float)samples);
 
-    if(avg < 1)
-        avg = 1;
+    data.microphoneADC = sum / (float)samples;
 
-    float dB = -1*(20*log10(avg/reference));
+    // Remove idle microphone noise
+    const float MIC_BASELINE = 1650.0f;
 
-    data.microphoneADC = avg;
-    data.soundDB = dB;
+    float cryLevel = rms - MIC_BASELINE;
+
+    if (cryLevel < 0)
+        cryLevel = 0;
+
+    data.soundDB = cryLevel / 800.0f;
+
+    if (data.soundDB > 1.0f)
+        data.soundDB = 1.0f;
+
+    const float sampleRate = 4000.0;
+
+    data.cryFrequency =
+        (zeroCrossings * sampleRate) /
+        (2.0 * samples);
 
     // --------------------------
-    // pulse Sensor
+    // Pulse Sensor Calibration
     // --------------------------
 
     data.pulseADC = analogRead(HEART_PIN);
 
-    if(data.pulseADC > 3000)
-        data.bpm = 0;
+    Serial.print("Pulse ADC: ");
+    Serial.println(data.pulseADC);
 
-    else if(data.pulseADC >=2890 && data.pulseADC<=2990)
-        data.bpm = 0;
-
-    else if(data.pulseADC<2550)
-        data.bpm = 0;
-
-    else
-        data.bpm =
-            80 + (data.pulseADC-2550)*0.1515;
+    // Temporary for calibration
+    data.bpm = 0;
 
     // --------------------------
     // MPU6050

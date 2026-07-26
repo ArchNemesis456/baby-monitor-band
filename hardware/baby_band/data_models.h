@@ -5,10 +5,6 @@
 
 struct RawSensorData
 {
-    // Microphone
-    int microphoneADC;
-    float soundDB;
-
     // Pulse Sensor
     int pulseADC;
     int bpm;
@@ -25,6 +21,11 @@ struct RawSensorData
 
     // Motion magnitude
     float movement;
+
+    // Microphone
+    int microphoneADC;
+    float soundDB;
+    float cryFrequency;
 };
 
 struct SensorData

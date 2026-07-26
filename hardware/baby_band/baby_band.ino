@@ -25,6 +25,46 @@ void loop()
     SensorData features =
         extractFeatures(raw);
 
+    Serial.println("\n========== RAW SENSOR DATA ==========");
+
+    Serial.print("Mic ADC: ");
+    Serial.println(raw.microphoneADC);
+
+    Serial.print("Sound dB: ");
+    Serial.println(raw.soundDB);
+
+    Serial.print("Cry Frequency: ");
+    Serial.println(raw.cryFrequency);
+
+    Serial.print("Pulse ADC: ");
+    Serial.println(raw.pulseADC);
+
+    Serial.print("Estimated BPM: ");
+    Serial.println(raw.bpm);
+
+    Serial.print("Accel X: ");
+    Serial.println(raw.accelX);
+
+    Serial.print("Accel Y: ");
+    Serial.println(raw.accelY);
+
+    Serial.print("Accel Z: ");
+    Serial.println(raw.accelZ);
+
+    Serial.print("Gyro X: ");
+    Serial.println(raw.gyroX);
+
+    Serial.print("Gyro Y: ");
+    Serial.println(raw.gyroY);
+
+    Serial.print("Gyro Z: ");
+    Serial.println(raw.gyroZ);
+
+    Serial.print("Movement: ");
+    Serial.println(raw.movement);
+
+    Serial.println("=====================================");
+        
     PredictionResponse prediction =
         sendPrediction(features);
 
